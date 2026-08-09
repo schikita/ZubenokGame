@@ -35,66 +35,136 @@ namespace zubrenok
 			);
 		}
 
-		sprite_.setTextureRect(
-			sf::IntRect(
-				{ 407, 148 },
-				{ 85, 97 }
-			)
-		);
+		updateSpriteFrame();
 
 		sprite_.setOrigin(
-			{ 42.5f, 48.5f }
+			{
+				frameWidth_ / 2.0f,
+				frameHeight_ / 2.0f
+			}
 		);
 
-		sprite_.setScale(
-			{ 0.65f, 0.65f }
-		);
 
 		sprite_.setPosition(
 			{
 				config::windowWidth / 2.0f,
 				config::windowHeight / 2.0f
 			}
-		);
+		);		
 	}
 
 
 	void Player::update(float deltaTime)
 	{
-		sf::Vector2f direction{ 0.0f, 0.0f };
+		sf::Vector2f movement{ 0.0f, 0.0f };
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W) ||
 			sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
 		{
-			direction.y -= 1.0f;
+			movement.y -= 1.0f;
+			direction_ = Direction::Up;
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) ||
+		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) ||
 			sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
 		{
-			direction.y += 1.0f;
+			movement.y += 1.0f;
+			direction_ = Direction::Down;
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) ||
+		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) ||
 			sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
 		{
-			direction.x -= 1.0f;
+			movement.x -= 1.0f;
+			direction_ = Direction::Left;
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) ||
+		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) ||
 			sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
 		{
-			direction.x += 1.0f;
+			movement.x += 1.0f;
+			direction_ = Direction::Right;
 		}
 
-		if (direction.x != 0.0f || direction.y != 0.0f)
-		{
-			const float length = std::sqrt(
-				direction.x * direction.x + direction.y * direction.y
+		const bool moving = movement.x != 0.0f || movement.y != 0.0f;
+
+		if (moving) {
+			const float lenght = std::sqrt(
+				movement.x * movement.x + movement.y * movement.y
 			);
-			direction /= length;
-			sprite_.move(direction * speed_ * deltaTime);
+
+			movement.x /= lenght;
+			movement.y /= lenght;
+
+			sprite_.move(
+				movement * speed_ * deltaTime);
 		}
+
+		updateAnimation(deltaTime, moving);
+	}
+
+	void Player::updateAnimation(float deltaTime, bool moving)
+	{
+		if (!moving)
+		{
+			animationTimer_ = 0.0f;
+			animationFrame_ = 1;
+
+			updateSpriteFrame();
+
+			return;
+		}
+
+		animationTimer_ -= animationFrameTime_;
+		animationFrame_++;
+
+		if (animationFrame_ >= framesPerDirection_)
+		{
+			animationFrame_ = 0;
+		}
+
+		updateSpriteFrame();
+	}
+
+	void Player::updateSpriteFrame()
+	{
+		int row = 0;
+		int columnOffset = 0;
+
+		switch (direction_)
+		{
+		case zubrenok::Player::Direction::Right:
+			row = 0;
+			columnOffset = 0;
+			break;
+		case zubrenok::Player::Direction::Left:
+			row = 0;
+			columnOffset = 3;
+			break;
+		case zubrenok::Player::Direction::Up:
+			row = 1;
+			columnOffset = 0;
+			break;
+		case zubrenok::Player::Direction::Down:
+			row = 1;
+			columnOffset = 3;
+			break;		
+		}
+
+		const int column = columnOffset + animationFrame_;
+
+		sprite_.setTextureRect(
+			sf::IntRect(
+				{
+				column * frameWidth_,
+				row * frameHeight_
+				},
+				{
+				frameWidth_,
+				frameHeight_
+				}
+			)
+		);
 	}
 
 	void Player::draw(sf::RenderTarget& target) const
