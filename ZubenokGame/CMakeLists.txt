@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
 
@@ -48,7 +49,13 @@ add_executable(
 	src/main.cpp
 	src/app/Application.cpp
 	src/persistence/Database.cpp
- "include/zubrenok/game/GameTypes.h" "include/zubrenok/levels/Level.h")
+	src/entities/Player.cpp
+
+	include/zubrenok/entities/Player.h
+	include/zubrenok/game/GameTypes.h
+	include/zubrenok/game/ContrillersMoves.h
+	include/zubrenok/levels/Level.h
+)
 
 target_include_directories(
 	ZubrenokGame
