@@ -26,6 +26,7 @@ namespace zubrenok
 
 		void updateAnimation(float deltatime, bool moving);
 		void updateSpriteFrame();
+		void clampToWindow();
 
 		sf::Texture texture_;
 		sf::Sprite sprite_;

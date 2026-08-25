@@ -7,8 +7,8 @@ namespace zubrenok
 	namespace config
 	{
 		inline constexpr int tileSize = 32;
-		inline constexpr int mapWidth = 23;
-		inline constexpr int mapHeight = 21;
+		inline constexpr int mapWidth = 40;
+		inline constexpr int mapHeight = 28;
 		inline constexpr int hudHeight = 88;
 
 		inline constexpr int windowWidth =

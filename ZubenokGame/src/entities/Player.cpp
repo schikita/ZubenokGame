@@ -96,8 +96,8 @@ namespace zubrenok
 			movement.x /= lenght;
 			movement.y /= lenght;
 
-			sprite_.move(
-				movement * speed_ * deltaTime);
+			sprite_.move(movement * speed_ * deltaTime);
+			clampToWindow();
 		}
 
 		updateAnimation(deltaTime, moving);
@@ -165,6 +165,39 @@ namespace zubrenok
 				}
 			)
 		);
+	}
+
+	void Player::clampToWindow()
+	{
+		sf::Vector2f position = sprite_.getPosition();
+
+		const float halfWidth = frameWidth_ / 2.0f;
+		const float halfHeight = frameHeight_ / 2.0f;
+
+		const float minX = halfWidth;
+		const float maxX = config::windowWidth - halfWidth;
+
+		const float minY = halfHeight;
+		const float maxY = config::windowHeight - halfHeight;
+
+		if (position.x < minX)
+		{
+			position.x = minX;
+		}
+		else if (position.x > maxX) {
+			position.x = maxX;
+		}
+
+		if (position.y < minY)
+		{
+			position.y = minY;
+		}
+		else if (position.y > maxY)
+		{
+			position.y = maxY;
+		}
+
+		sprite_.setPosition(position);
 	}
 
 	void Player::draw(sf::RenderTarget& target) const
