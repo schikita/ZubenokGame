@@ -37,7 +37,7 @@ namespace zubrenok
 			R"sql(
 				CREATE TABLE IF NOT EXISTS settings
 					(
-						key TEXT PIMARY KEY,
+						key TEXT PRIMARY KEY,
 						value TEXT NOT NULL
 					);
 

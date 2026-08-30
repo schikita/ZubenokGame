@@ -2,15 +2,14 @@
 
 #include "zubrenok/entities/Player.h"
 #include "zubrenok/game/GameTypes.h"
+#include "zubrenok/levels/Level.h"
 
-#include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/VideoMode.hpp>
 
 #include <filesystem>
-
 
 namespace zubrenok
 {
@@ -33,19 +32,29 @@ namespace zubrenok
 		sf::RenderWindow window(
 			sf::VideoMode(
 				{
-					static_cast<unsigned int>(config::windowWidth),
-					static_cast<unsigned int>(config::windowHeight)
+					static_cast<unsigned int>(
+						config::windowWidth
+					),
+					static_cast<unsigned int>(
+						config::windowHeight
+					)
 				}
 			),
-			"Zubrenok Game"
+			"Zubrenok"
 		);
 
 		window.setFramerateLimit(144);
 
+		Level level;
+
 		Player player;
 		player.load();
+		player.setPosition(
+			level.tileToWorld(level.getPlayerSpawn())
+		);
 
 		sf::Clock clock;
+		float animationTime = 0.0f;
 
 		while (window.isOpen())
 		{
@@ -57,12 +66,23 @@ namespace zubrenok
 				}
 			}
 
-			const float deltaTime = clock.restart().asSeconds();
+			const float deltaTime =
+				clock.restart().asSeconds();
 
-			player.update(deltaTime);
+			animationTime += deltaTime;
+			player.update(deltaTime, level);
 
 			window.clear(
-				sf::Color(30, 45, 34)
+				sf::Color(
+					14,
+					22,
+					17
+				)
+			);
+
+			level.draw(
+				window,
+				animationTime
 			);
 
 			player.draw(window);

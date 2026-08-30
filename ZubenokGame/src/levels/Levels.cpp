@@ -179,6 +179,30 @@ namespace zubrenok
 		return tiles_[position.y][position.x] != wallTile;
 	}
 
+	bool Level::isWorldPositionWalkable(
+		sf::Vector2f worldPosition,
+		float collisionRadius
+	) const
+	{
+		const sf::Vector2f sampleOffsets[] = {
+			{ 0.0f, 0.0f },
+			{ -collisionRadius, -collisionRadius },
+			{ collisionRadius, -collisionRadius },
+			{ -collisionRadius, collisionRadius },
+			{ collisionRadius, collisionRadius }
+		};
+
+		for (const sf::Vector2f& offset : sampleOffsets)
+		{
+			if (!isWalkable(worldToTile(worldPosition + offset)))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	bool Level::canMove(
 		TilePosition position,
 		Direction direction
@@ -268,11 +292,6 @@ namespace zubrenok
 			return CollectibleType::None;
 		}
 
-		if (!isNearTileCenter(worldPosition, config::tileSize * 0.35f))
-		{
-			return CollectibleType::None;
-		}
-
 		char& tile = tiles_[tilePostion.y][tilePostion.x];
 
 		if (tile == berryTile)
@@ -310,5 +329,529 @@ namespace zubrenok
 	{
 		return enemySpawns_;
 	}
-	/*.....25.08.2026*/
+	
+	int Level::calculateShortestDistance(
+		TilePosition start,
+		TilePosition target
+	) const
+	{
+		if (!isWalkable(start))
+		{
+			return std::numeric_limits<int>::max();
+		}
+
+		target = findNearestWalkableTile(target);
+
+		if (!isWalkable(target))
+		{
+			return std::numeric_limits<int>::max();
+		}
+
+		if (start == target)
+		{
+			return 0;
+		}
+
+		std::vector<std::vector<int>> distances(
+			config::mapHeight,
+			std::vector<int>(
+				config::mapWidth,
+				-1
+			)
+		);
+
+		std::queue<TilePosition> queue;
+
+		distances[start.y][start.x] = 0;
+		queue.push(start);
+
+		const Direction directions[] = {
+			Direction::Up,
+			Direction::Down,
+			Direction::Left,
+			Direction::Right
+		};
+
+		while (!queue.empty())
+		{
+			const TilePosition current = queue.front();
+			queue.pop();
+
+			for (Direction direction : directions)
+			{
+				const TilePosition offset = directionToOffset(direction);
+
+				const TilePosition next{
+					current.x + offset.x,
+					current.y + offset.y
+				};
+
+				if (!isWalkable(next))
+				{
+					continue;
+				}
+
+				if (distances[next.y][next.x] != -1) {
+					continue;
+				}
+
+				distances[next.y][next.x] = distances[current.y][current.x] + 1;
+
+				if (next == target)
+				{
+					return distances[next.y][next.x];
+				}
+
+				queue.push(next);
+			}
+		}
+		return std::numeric_limits<int>::max();
+	}
+
+	TilePosition Level::findNearestWalkableTile(
+		TilePosition target
+	) const
+	{
+		target.x = std::clamp(target.x, 0, config::mapWidth - 1);
+
+		target.y = std::clamp(target.y, 0, config::mapHeight - 1);
+
+		if (isWalkable(target))
+		{
+			return target;
+		}
+
+		std::queue<TilePosition> queue;
+
+		std::vector<std::vector<bool>> visited(
+			config::mapHeight,
+			std::vector<bool>(
+				config::mapWidth,
+				false
+			)
+		);
+
+		queue.push(target);
+		visited[target.y][target.x] = true;
+
+		const Direction directions[] = {
+			Direction::Up,
+			Direction::Down,
+			Direction::Left,
+			Direction::Right
+		};
+
+		while (!queue.empty())
+		{
+			const TilePosition current = queue.front();
+
+			queue.pop();
+
+			for (Direction direction : directions)
+			{
+				const TilePosition offset = directionToOffset(direction);
+
+				const TilePosition next{
+					current.x + offset.x,
+					current.y + offset.y
+				};
+
+				if (!isInside(next))
+				{
+					continue;
+				}
+
+				if (visited[next.y][next.x])
+				{
+					continue;
+				}
+
+				visited[next.y][next.x] = true;
+
+				if (isWalkable(next))
+				{
+					return next;
+				}
+
+				queue.push(next);
+			}
+		}
+
+		return target;
+	}
+
+	void Level::draw(
+		sf::RenderTarget& target,
+		float animationTime
+	) const
+	{
+		drawFloor(target);
+
+		int berrySeed = 0;
+
+		for (int y = 0; y < config::mapHeight; ++y)
+		{
+			for (int x = 0; x < config::mapWidth; ++x)
+			{
+				const TilePosition tilePosition{
+					x, y
+				};
+
+				const char tile = tiles_[y][x];
+
+				if (tile == wallTile)
+				{
+					drawWall(
+						target,
+						tilePosition
+					);
+
+					continue;
+				}
+
+				const sf::Vector2f worldPosition = tileToWorld(tilePosition);
+
+				if (tile == berryTile)
+				{
+					drawBerry(
+						target,
+						worldPosition,
+						animationTime,
+						berrySeed
+					);
+
+					++berrySeed;
+				}
+				else if (tile == acornTile) {
+					drawAcorn(
+						target,
+						worldPosition,
+						animationTime
+					);
+				}
+			}
+		}
+	}
+
+	void Level::drawFloor(
+		sf::RenderTarget& target
+	) const
+	{
+		sf::RectangleShape background(
+			{
+				static_cast<float>(
+						config::windowWidth
+					),
+
+					static_cast<float>(
+							config::mapHeight * config::tileSize
+						)
+			}
+		);
+
+		background.setPosition(
+			{
+				0.0f,
+				static_cast<float>(
+						config::hudHeight
+					)
+			}
+		);
+
+		background.setFillColor(
+			sf::Color(
+				20,
+				35,
+				25
+			)
+		);
+
+		target.draw(background);
+
+		sf::RectangleShape tileShape(
+			{
+				static_cast<float>(
+						config::tileSize
+					),
+
+				static_cast<float>(
+						config::tileSize
+					)
+			}
+		);
+
+		for (int y = 0; y < config::mapHeight; ++y)
+		{
+			for (int x = 0; x < config::mapWidth; ++x)
+			{
+				if (tiles_[y][x] == wallTile) {
+					continue;					
+				}
+
+				tileShape.setPosition(
+					{
+						static_cast<float>(
+								x * config::tileSize
+							),
+
+						static_cast<float>(
+								config::hudHeight + y * config::tileSize
+							)
+					}
+				);
+
+				if ((x + y) % 2 == 0) {
+					tileShape.setFillColor(
+						sf::Color(
+							30, 50, 35
+						)
+					);
+				}
+				else {
+					tileShape.setFillColor(
+						sf::Color(
+							25, 45, 30
+						)
+					);
+				}
+
+				target.draw(tileShape);
+			}
+		}
+	}
+
+	void Level::drawWall(
+		sf::RenderTarget& target,
+		TilePosition position
+	) const
+	{
+		const float tileSize = static_cast<float>(
+			config::tileSize
+			);
+
+		const float x = static_cast<float>(
+			position.x * config::tileSize
+			);
+		
+		const float y = static_cast<float>(
+			config::hudHeight + position.y * config::tileSize
+			);
+
+		sf::RectangleShape shadow(
+			{
+				tileSize, tileSize
+			}
+		);
+
+		shadow.setPosition(
+			{
+				x, y
+			}
+		);
+
+		shadow.setFillColor(
+			sf::Color(25, 45, 30)
+		);
+
+		target.draw(shadow);
+
+		sf::RectangleShape wall(
+			{
+				tileSize - wallPadding * 2.0f,
+				tileSize - wallPadding * 2.0f
+			}
+		);
+
+		wall.setPosition(
+			{
+				x + wallPadding,
+				y + wallPadding
+			}
+		);
+
+		wall.setFillColor(
+			sf::Color(
+				55, 100, 60
+			)
+		);
+
+		target.draw(wall);
+
+		sf::RectangleShape highlight(
+			{
+				tileSize - 8.0f,
+				4.0f
+			}
+		);
+
+		highlight.setPosition(
+			{
+				x + 4.0f,
+				y + 4.0f
+			}
+		);
+
+		highlight.setFillColor(
+			sf::Color(
+				80, 135, 80
+			)
+		);
+
+		target.draw(highlight);
+	}
+
+	void Level::drawBerry(
+		sf::RenderTarget& target,
+		sf::Vector2f position,
+		float animationTime,
+		int seed
+	) const
+	{
+		const float phase = animationTime * 4.0f + static_cast<float>(seed) * 0.35f;
+
+		const float pulse = 1.0f + std::sin(phase) * 0.2f;
+
+		const float radius = 4.0f * pulse;
+
+		sf::CircleShape berry(radius);
+
+		berry.setOrigin(
+			{
+				radius,
+				radius
+			}
+		);
+
+		berry.setPosition(position);
+
+		berry.setFillColor(
+			sf::Color(
+				200,
+				50,
+				70
+			)
+		);
+
+		target.draw(berry);
+
+		sf::CircleShape highlight(
+			radius * 0.32f
+		);
+
+		highlight.setOrigin(
+			{
+				radius * 0.32f,
+				radius * 0.32f
+			}
+		);
+
+		highlight.setPosition(
+			{
+				position.x - radius * 0.25f,
+				position.y - radius * 0.25f
+			}
+		);
+
+		highlight.setFillColor(
+			sf::Color(
+				255,
+				166, 170
+			)
+		);
+
+		target.draw(highlight);
+	}
+
+	void Level::drawAcorn(
+		sf::RenderTarget& target,
+		sf::Vector2f position,
+		float animationTime
+	) const
+	{
+		const float bob = std::sin(animationTime * 3.5f) * 2.0f;
+
+		position.y += bob;
+
+		sf::CircleShape glow(12.0f);
+
+		glow.setOrigin(
+			{
+				12.0f,
+				12.0f
+			}
+		);
+
+		glow.setPosition(position);
+
+		glow.setFillColor(
+			sf::Color(
+				230, 176, 67, 45
+			)
+		);
+
+		target.draw(glow);
+
+		sf::CircleShape body(
+			7.0f
+		);
+
+		body.setOrigin(
+			{
+				7.0f,
+				7.0f
+			}
+		);
+
+		body.setScale(
+			{
+				0.85f, 1.2f
+			}
+		);
+
+		body.setPosition(
+			{
+				position.x,
+				position.y + 2.0f
+			}
+		);
+
+		body.setFillColor(
+			sf::Color(
+				190, 125, 54
+			)
+		);
+
+		target.draw(body);
+
+		sf::RectangleShape cap(
+			{
+				12.0f,
+				5.0f
+			}
+		);
+
+		cap.setOrigin(
+			{
+				6.0f,
+				2.5f
+			}
+		);
+
+		cap.setPosition(
+			{
+				position.x,
+				position.y - 4.0f
+			}
+		);
+
+		cap.setFillColor(
+			sf::Color(
+				103,
+				69, 38
+			)
+		);
+
+		target.draw(cap);
+	}
+
 }

@@ -1,22 +1,30 @@
 #pragma once
 
+#include "zubrenok/game/GameTypes.h"
+
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
+#include <SFML/System/Vector2.hpp>
 
 namespace zubrenok
 {
+	class Level;
+
 	class Player
 	{
 	public:
 		Player();
 
 		void load();
-		void update(float deltaTime);
+		void setPosition(sf::Vector2f position);
+		sf::Vector2f getPosition() const;
+
+		CollectibleType update(float deltaTime, Level& level);
 		void draw(sf::RenderTarget& target) const;
 
 	private:
-		enum class Direction
+		enum class Facing
 		{
 			Right,
 			Left,
@@ -24,14 +32,13 @@ namespace zubrenok
 			Down
 		};
 
-		void updateAnimation(float deltatime, bool moving);
+		void updateAnimation(float deltaTime, bool moving);
 		void updateSpriteFrame();
-		void clampToWindow();
 
 		sf::Texture texture_;
 		sf::Sprite sprite_;
 
-		Direction direction_ = Direction::Down;
+		Facing facing_ = Facing::Down;
 
 		int animationFrame_ = 1;
 
@@ -42,5 +49,7 @@ namespace zubrenok
 		static constexpr int frameWidth_ = 130;
 		static constexpr int frameHeight_ = 95;
 		static constexpr int framesPerDirection_ = 3;
+		static constexpr float spriteScale_ = 0.4f;
+		static constexpr float collisionRadius_ = 10.0f;
 	};
 }

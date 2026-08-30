@@ -1,6 +1,7 @@
 #include "zubrenok/entities/Player.h"
 
 #include "zubrenok/game/GameTypes.h"
+#include "zubrenok/levels/Level.h"
 
 #include <SFML/Graphics/Image.hpp>
 #include <SFML/Window/Keyboard.hpp>
@@ -44,17 +45,27 @@ namespace zubrenok
 			}
 		);
 
-
-		sprite_.setPosition(
+		sprite_.setScale(
 			{
-				config::windowWidth / 2.0f,
-				config::windowHeight / 2.0f
+				spriteScale_,
+				spriteScale_
 			}
-		);		
+		);
+
+		speed_ = config::playerSpeed;
 	}
 
+	void Player::setPosition(sf::Vector2f position)
+	{
+		sprite_.setPosition(position);
+	}
 
-	void Player::update(float deltaTime)
+	sf::Vector2f Player::getPosition() const
+	{
+		return sprite_.getPosition();
+	}
+
+	CollectibleType Player::update(float deltaTime, Level& level)
 	{
 		sf::Vector2f movement{ 0.0f, 0.0f };
 
@@ -62,45 +73,72 @@ namespace zubrenok
 			sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
 		{
 			movement.y -= 1.0f;
-			direction_ = Direction::Up;
+			facing_ = Facing::Up;
 		}
-
 		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) ||
 			sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
 		{
 			movement.y += 1.0f;
-			direction_ = Direction::Down;
+			facing_ = Facing::Down;
 		}
-
 		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) ||
 			sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
 		{
 			movement.x -= 1.0f;
-			direction_ = Direction::Left;
+			facing_ = Facing::Left;
 		}
-
 		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) ||
 			sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
 		{
 			movement.x += 1.0f;
-			direction_ = Direction::Right;
+			facing_ = Facing::Right;
 		}
 
-		const bool moving = movement.x != 0.0f || movement.y != 0.0f;
+		const bool wantsToMove =
+			movement.x != 0.0f || movement.y != 0.0f;
 
-		if (moving) {
-			const float lenght = std::sqrt(
+		bool moved = false;
+
+		if (wantsToMove)
+		{
+			const float length = std::sqrt(
 				movement.x * movement.x + movement.y * movement.y
 			);
 
-			movement.x /= lenght;
-			movement.y /= lenght;
+			movement /= length;
 
-			sprite_.move(movement * speed_ * deltaTime);
-			clampToWindow();
+			const sf::Vector2f current = sprite_.getPosition();
+			const sf::Vector2f delta = movement * speed_ * deltaTime;
+
+			sf::Vector2f next = current;
+			next.x += delta.x;
+
+			if (level.isWorldPositionWalkable(next, collisionRadius_))
+			{
+				moved = true;
+			}
+			else
+			{
+				next.x = current.x;
+			}
+
+			next.y += delta.y;
+
+			if (level.isWorldPositionWalkable(next, collisionRadius_))
+			{
+				moved = true;
+			}
+			else
+			{
+				next.y = current.y;
+			}
+
+			sprite_.setPosition(next);
 		}
 
-		updateAnimation(deltaTime, moving);
+		updateAnimation(deltaTime, moved);
+
+		return level.consumeCollectible(sprite_.getPosition());
 	}
 
 	void Player::updateAnimation(float deltaTime, bool moving)
@@ -109,21 +147,18 @@ namespace zubrenok
 		{
 			animationTimer_ = 0.0f;
 			animationFrame_ = 1;
-
 			updateSpriteFrame();
-
 			return;
 		}
 
-		animationTimer_ -= animationFrameTime_;
-		animationFrame_++;
+		animationTimer_ += deltaTime;
 
-		if (animationFrame_ >= framesPerDirection_)
+		if (animationTimer_ >= animationFrameTime_)
 		{
-			animationFrame_ = 0;
+			animationTimer_ -= animationFrameTime_;
+			animationFrame_ = (animationFrame_ + 1) % framesPerDirection_;
+			updateSpriteFrame();
 		}
-
-		updateSpriteFrame();
 	}
 
 	void Player::updateSpriteFrame()
@@ -131,24 +166,24 @@ namespace zubrenok
 		int row = 0;
 		int columnOffset = 0;
 
-		switch (direction_)
+		switch (facing_)
 		{
-		case zubrenok::Player::Direction::Right:
+		case Facing::Right:
 			row = 0;
 			columnOffset = 0;
 			break;
-		case zubrenok::Player::Direction::Left:
+		case Facing::Left:
 			row = 0;
 			columnOffset = 3;
 			break;
-		case zubrenok::Player::Direction::Up:
+		case Facing::Up:
 			row = 1;
 			columnOffset = 0;
 			break;
-		case zubrenok::Player::Direction::Down:
+		case Facing::Down:
 			row = 1;
 			columnOffset = 3;
-			break;		
+			break;
 		}
 
 		const int column = columnOffset + animationFrame_;
@@ -156,48 +191,15 @@ namespace zubrenok
 		sprite_.setTextureRect(
 			sf::IntRect(
 				{
-				column * frameWidth_,
-				row * frameHeight_
+					column * frameWidth_,
+					row * frameHeight_
 				},
 				{
-				frameWidth_,
-				frameHeight_
+					frameWidth_,
+					frameHeight_
 				}
 			)
 		);
-	}
-
-	void Player::clampToWindow()
-	{
-		sf::Vector2f position = sprite_.getPosition();
-
-		const float halfWidth = frameWidth_ / 2.0f;
-		const float halfHeight = frameHeight_ / 2.0f;
-
-		const float minX = halfWidth;
-		const float maxX = config::windowWidth - halfWidth;
-
-		const float minY = halfHeight;
-		const float maxY = config::windowHeight - halfHeight;
-
-		if (position.x < minX)
-		{
-			position.x = minX;
-		}
-		else if (position.x > maxX) {
-			position.x = maxX;
-		}
-
-		if (position.y < minY)
-		{
-			position.y = minY;
-		}
-		else if (position.y > maxY)
-		{
-			position.y = maxY;
-		}
-
-		sprite_.setPosition(position);
 	}
 
 	void Player::draw(sf::RenderTarget& target) const

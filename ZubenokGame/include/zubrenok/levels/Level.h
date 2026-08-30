@@ -25,6 +25,11 @@ namespace zubrenok
 		bool isInside(TilePosition position) const;
 		bool isWalkable(TilePosition position) const;
 
+		bool isWorldPositionWalkable(
+			sf::Vector2f worldPosition,
+			float collisionRadius
+		) const;
+
 		bool canMove(
 			TilePosition position,
 			Direction direction

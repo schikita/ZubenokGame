@@ -50,12 +50,12 @@ add_executable(
 	src/app/Application.cpp
 	src/persistence/Database.cpp
 	src/entities/Player.cpp
-
+	src/levels/Levels.cpp
 	include/zubrenok/entities/Player.h
 	include/zubrenok/game/GameTypes.h
 	include/zubrenok/game/ContrillersMoves.h
 	include/zubrenok/levels/Level.h
- "src/levels/Levels.cpp")
+)
 
 target_include_directories(
 	ZubrenokGame
