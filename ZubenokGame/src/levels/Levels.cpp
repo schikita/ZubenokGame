@@ -2,6 +2,8 @@
 
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/Image.hpp>
+#include <stdexcept>
 
 #include <algorithm>
 #include <cmath>
@@ -10,6 +12,10 @@
 
 namespace zubrenok
 {
+
+	constexpr int presetCellW = 160;
+	constexpr int presetCellH = 180;
+
 	namespace
 	{
 		constexpr char wallTile = '#';
@@ -29,6 +35,16 @@ namespace zubrenok
 
 	void Level::reset() {
 		loadDefaultMap();
+
+		loadPresets();
+
+		trees_.clear();
+
+		trees_.push_back({ {4,2}, 0 });
+		trees_.push_back({ {35,2}, 2 });
+		trees_.push_back({ {10,25}, 1 });
+		trees_.push_back({ {28,25}, 3 });
+
 		parseMapObjects();
 	}
 
@@ -97,11 +113,47 @@ namespace zubrenok
 		addHorizontWall(3, 11, 9);
 		addHorizontWall(15, 11, 10);
 		addHorizontWall(28, 11, 9);
-		/*...*/
-		
-		tiles_[2][2]= acornTile;
+
+		addVerticalWall(10, 4, 6);
+		addVerticalWall(20, 5, 5);
+		addVerticalWall(30, 4, 6);
+
+		addHorizontWall(8, 15, 10);
+		addHorizontWall(22, 15, 10);
+		addHorizontWall(3, 19, 8);
+		addHorizontWall(29, 19, 8);
+
+		addVerticalWall(15, 12, 8);
+		addVerticalWall(24, 12, 8);
+
+		addHorizontWall(12, 23, 16);
+		addVerticalWall(7, 20, 5);
+		addVerticalWall(32, 20, 5);
+
+		tiles_[2][2] = acornTile;
 		tiles_[2][config::mapWidth - 3] = acornTile;
-		/*...*/
+		tiles_[2][20] = acornTile;
+		tiles_[config::mapHeight - 3][2] = acornTile;
+		tiles_[config::mapHeight - 3][config::mapWidth - 3] = acornTile;
+		tiles_[14][5] = acornTile;
+		tiles_[14][config::mapWidth - 6] = acornTile;
+
+		// Keep spawn and enemy den clear of walls.
+		for (int y = 19; y <= 21; ++y)
+		{
+			for (int x = 19; x <= 21; ++x)
+			{
+				tiles_[y][x] = berryTile;
+			}
+		}
+
+		for (int y = 12; y <= 14; ++y)
+		{
+			for (int x = 17; x <= 22; ++x)
+			{
+				tiles_[y][x] = emptyTile;
+			}
+		}
 
 		tiles_[20][20] = playerSpawnTile;
 
@@ -531,6 +583,11 @@ namespace zubrenok
 				}
 			}
 		}
+
+		for (const Decoration& tree : trees_)
+		{
+			drawTree(target, tree);
+		}
 	}
 
 	void Level::drawFloor(
@@ -852,6 +909,50 @@ namespace zubrenok
 		);
 
 		target.draw(cap);
+	}
+
+	void Level::loadPresets() {
+		sf::Image image;
+		if (!image.loadFromFile("assets/level/presets.png"))
+		{
+			throw std::runtime_error("Failed to load presets.png");
+		}
+
+		image.createMaskFromColor(sf::Color::Black);
+
+		if (!presetsTexture_.loadFromImage(image))
+		{
+			throw std::runtime_error("Failed to create presets texture");
+		}
+
+		presetsTexture_.setSmooth(false);
+		presetsSprite_.setTexture(presetsTexture_, true);
+	}
+
+	void Level::drawTree(sf::RenderTarget& target, const Decoration& tree) const
+	{
+		presetsSprite_.setTextureRect(sf::IntRect({ tree.presetColumn * presetCellW, 0 },
+			{ presetCellW, presetCellH }));
+
+		const float scale = static_cast<float>(config::tileSize) / static_cast<float>(presetCellW);
+
+		presetsSprite_.setScale({scale, scale});
+		presetsSprite_.setOrigin(
+			{
+				presetCellW * 0.5f,
+				static_cast<float>(presetCellH)
+			}
+		);
+
+		const sf::Vector2f center = tileToWorld(tree.tile);
+		presetsSprite_.setPosition(
+			{
+				center.x,
+				center.y + static_cast<float>(config::tileSize) * 0.5f
+			}
+		);
+
+		target.draw(presetsSprite_);
 	}
 
 }

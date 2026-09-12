@@ -13,3 +13,13 @@ project("ZubenokGame")
 
 # Включите подпроекты.
 add_subdirectory("ZubenokGame")
+
+# Keep a root-level compile_commands.json for clangd / Cursor IntelliSense.
+if (EXISTS "${CMAKE_BINARY_DIR}/compile_commands.json")
+	execute_process(
+		COMMAND
+			"${CMAKE_COMMAND}" -E copy_if_different
+			"${CMAKE_BINARY_DIR}/compile_commands.json"
+			"${CMAKE_SOURCE_DIR}/compile_commands.json"
+	)
+endif()

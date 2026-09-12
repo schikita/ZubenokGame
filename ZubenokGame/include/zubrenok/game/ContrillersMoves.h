@@ -1,3 +1,7 @@
 #pragma once
 
-#include <SFML / System / Vector2.hpp>
+// Placeholder for future input helpers (move buffering, etc.).
+
+namespace zubrenok::input
+{
+}

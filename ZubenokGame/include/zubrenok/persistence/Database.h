@@ -11,7 +11,7 @@ namespace zubrenok
 	public:
 		explicit Database(const std::filesystem::path& path);
 
-		void inicialize();
+		void initialize();
 
 	private:
 		SQLite::Database connection_;

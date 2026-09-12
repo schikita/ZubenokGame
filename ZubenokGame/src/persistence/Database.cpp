@@ -27,7 +27,7 @@ namespace zubrenok
 	{
 	}
 
-	void Database::inicialize()
+	void Database::initialize()
 	{
 		connection_.exec("PRAGMA foreign_keys = ON;");
 		connection_.exec("PRAGMA journal_mode = WAL");

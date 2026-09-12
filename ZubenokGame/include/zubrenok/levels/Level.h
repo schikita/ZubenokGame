@@ -5,11 +5,17 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
 
+#include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/Texture.hpp>
+
 #include <string>
 #include <vector>
 
 namespace zubrenok
 {
+	
+
+
 	class Level
 	{
 	public:
@@ -65,12 +71,25 @@ namespace zubrenok
 		) const;
 
 	private:
+		struct Decoration
+		{
+			TilePosition tile;
+			int presetColumn = 0;
+		};
+
 		std::vector<std::string> tiles_;
 
 		TilePosition playerSpawn_;
 		std::vector<TilePosition> enemySpawns_;
 
 		int remainingCollectibles_ = 0;
+
+		sf::Texture presetsTexture_;
+		mutable sf::Sprite presetsSprite_{ presetsTexture_ };
+		std::vector<Decoration> trees_;
+
+		void loadPresets();
+		void drawTree(sf::RenderTarget& target, const Decoration& tree) const;
 
 		void loadDefaultMap();
 		void parseMapObjects();

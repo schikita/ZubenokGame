@@ -46,10 +46,13 @@ namespace zubrenok
 		float animationTimer_ = 0.0f;
 		float animationFrameTime_ = 0.12f;
 
+		// Sprite sheet layout (top-left of zubrenok.png):
+		// row 0: side Right (0-2), side Left (3-5)
+		// row 1: Up/back (0-2), Down/front (3-5)
 		static constexpr int frameWidth_ = 130;
 		static constexpr int frameHeight_ = 95;
 		static constexpr int framesPerDirection_ = 3;
-		static constexpr float spriteScale_ = 0.4f;
+		static constexpr float spriteScale_ = 0.55f;
 		static constexpr float collisionRadius_ = 10.0f;
 	};
 }

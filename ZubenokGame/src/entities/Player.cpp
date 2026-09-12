@@ -27,6 +27,7 @@ namespace zubrenok
 			);
 		}
 
+		// Sheet sits on a white canvas — make white transparent.
 		image.createMaskFromColor(sf::Color::White);
 
 		if (!texture_.loadFromImage(image))
@@ -35,6 +36,8 @@ namespace zubrenok
 				"Failed to create player texture"
 			);
 		}
+
+		texture_.setSmooth(false);
 
 		updateSpriteFrame();
 
@@ -104,7 +107,6 @@ namespace zubrenok
 			const float length = std::sqrt(
 				movement.x * movement.x + movement.y * movement.y
 			);
-
 			movement /= length;
 
 			const sf::Vector2f current = sprite_.getPosition();
@@ -112,7 +114,6 @@ namespace zubrenok
 
 			sf::Vector2f next = current;
 			next.x += delta.x;
-
 			if (level.isWorldPositionWalkable(next, collisionRadius_))
 			{
 				moved = true;
@@ -123,7 +124,6 @@ namespace zubrenok
 			}
 
 			next.y += delta.y;
-
 			if (level.isWorldPositionWalkable(next, collisionRadius_))
 			{
 				moved = true;
@@ -137,7 +137,6 @@ namespace zubrenok
 		}
 
 		updateAnimation(deltaTime, moved);
-
 		return level.consumeCollectible(sprite_.getPosition());
 	}
 
@@ -152,7 +151,6 @@ namespace zubrenok
 		}
 
 		animationTimer_ += deltaTime;
-
 		if (animationTimer_ >= animationFrameTime_)
 		{
 			animationTimer_ -= animationFrameTime_;
